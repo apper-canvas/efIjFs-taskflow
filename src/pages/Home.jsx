@@ -10,67 +10,34 @@ import {
   List
 } from "lucide-react";
 import MainFeature from "../components/MainFeature";
-
-// Sample initial data
-const initialTasks = [
-  {
-    id: "task-1",
-    title: "Complete project proposal",
-    description: "Draft and finalize the Q3 marketing campaign proposal",
-    dueDate: new Date(Date.now() + 86400000 * 2).toISOString(), // 2 days from now
-    priority: "high",
-    status: "todo",
-    projectId: "project-1",
-  },
-  {
-    id: "task-2",
-    title: "Review analytics dashboard",
-    description: "Check performance metrics and prepare report",
-    dueDate: new Date(Date.now() + 86400000 * 1).toISOString(), // 1 day from now
-    priority: "medium",
-    status: "inProgress",
-    projectId: "project-2",
-  },
-  {
-    id: "task-3",
-    title: "Team meeting preparation",
-    description: "Prepare agenda and presentation for weekly team meeting",
-    dueDate: new Date(Date.now() + 86400000 * 3).toISOString(), // 3 days from now
-    priority: "low",
-    status: "todo",
-    projectId: "project-1",
-  },
-  {
-    id: "task-4",
-    title: "Client call follow-up",
-    description: "Send meeting notes and action items to client",
-    dueDate: new Date(Date.now() - 86400000 * 1).toISOString(), // 1 day ago (overdue)
-    priority: "high",
-    status: "completed",
-    projectId: "project-3",
-  }
-];
-
-const initialProjects = [
-  { id: "project-1", name: "Marketing Campaign", color: "#6366f1" },
-  { id: "project-2", name: "Website Redesign", color: "#ec4899" },
-  { id: "project-3", name: "Client Onboarding", color: "#06b6d4" }
-];
+import { useDatabase } from "../hooks/useDatabase";
 
 function Home() {
-  const [tasks, setTasks] = useState(() => {
-    const savedTasks = localStorage.getItem("tasks");
-    return savedTasks ? JSON.parse(savedTasks) : initialTasks;
-  });
+  const { tasks: tasksService, projects: projectsService, isLoading } = useDatabase();
   
-  const [projects] = useState(initialProjects);
+  const [tasks, setTasks] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [viewMode, setViewMode] = useState("list"); // list, grid, calendar
   const [filter, setFilter] = useState("all"); // all, todo, inProgress, completed
   
+  // Load tasks and projects from database
   useEffect(() => {
-    localStorage.setItem("tasks", JSON.stringify(tasks));
-  }, [tasks]);
+    const loadData = async () => {
+      try {
+        const projectsData = await projectsService.getAllProjects();
+        setProjects(projectsData);
+        
+        const tasksData = await tasksService.getAllTasks();
+        setTasks(tasksData);
+      } catch (error) {
+        console.error("Error loading data:", error);
+      }
+    };
+    
+    loadData();
+  }, [tasksService, projectsService]);
   
+  // Filter tasks based on selected filter
   const filteredTasks = tasks.filter(task => {
     if (filter === "all") return true;
     if (filter === "todo") return task.status === "todo";
@@ -80,23 +47,49 @@ function Home() {
   });
   
   const getProjectById = (id) => {
-    return projects.find(project => project.id === id) || { name: "No Project", color: "#94a3b8" };
+    const project = projects.find(project => project.id === id);
+    return project || { name: "No Project", color: "#94a3b8" };
   };
   
-  const handleTaskStatusChange = (taskId, newStatus) => {
-    setTasks(prevTasks => 
-      prevTasks.map(task => 
-        task.id === taskId ? { ...task, status: newStatus } : task
-      )
+  const handleTaskStatusChange = async (taskId, newStatus) => {
+    try {
+      const updatedTask = await tasksService.updateTaskStatus(taskId, newStatus);
+      
+      // Update local state
+      setTasks(prevTasks => 
+        prevTasks.map(task => 
+          task.id === taskId ? { ...task, status: newStatus } : task
+        )
+      );
+    } catch (error) {
+      console.error("Error updating task status:", error);
+    }
+  };
+  
+  const handleAddTask = async (newTask) => {
+    try {
+      const addedTask = await tasksService.addTask({
+        ...newTask,
+        id: `task-${Date.now()}`,
+      });
+      
+      // Update local state
+      setTasks(prevTasks => [...prevTasks, addedTask]);
+    } catch (error) {
+      console.error("Error adding task:", error);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-lg">Loading your tasks...</p>
+        </div>
+      </div>
     );
-  };
-  
-  const handleAddTask = (newTask) => {
-    setTasks(prevTasks => [...prevTasks, {
-      id: `task-${Date.now()}`,
-      ...newTask,
-    }]);
-  };
+  }
 
   return (
     <motion.div

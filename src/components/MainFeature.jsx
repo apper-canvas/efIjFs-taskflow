@@ -13,8 +13,10 @@ import {
   Trash2
 } from "lucide-react";
 import { format, isPast, isToday, isTomorrow } from "date-fns";
+import { useDatabase } from "../hooks/useDatabase";
 
 function MainFeature({ tasks, projects, getProjectById, onTaskStatusChange, onAddTask, viewMode }) {
+  const { tasks: tasksService } = useDatabase();
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [newTask, setNewTask] = useState({
     title: "",
@@ -87,6 +89,18 @@ function MainFeature({ tasks, projects, getProjectById, onTaskStatusChange, onAd
 
   const handleStatusChange = (taskId, newStatus) => {
     onTaskStatusChange(taskId, newStatus);
+    setActiveTaskId(null);
+  };
+  
+  const handleDeleteTask = async (taskId) => {
+    try {
+      await tasksService.deleteTask(taskId);
+      // The parent component will need to refresh tasks
+      // This would typically be handled by a more robust state management system
+      window.location.reload();
+    } catch (error) {
+      console.error("Error deleting task:", error);
+    }
     setActiveTaskId(null);
   };
 
@@ -358,7 +372,10 @@ function MainFeature({ tasks, projects, getProjectById, onTaskStatusChange, onAd
                                 <Edit size={16} />
                                 <span>Edit Task</span>
                               </button>
-                              <button className="w-full flex items-center gap-2 p-2 text-left rounded-lg hover:bg-surface-100 dark:hover:bg-surface-700 text-red-500">
+                              <button 
+                                onClick={() => handleDeleteTask(task.id)}
+                                className="w-full flex items-center gap-2 p-2 text-left rounded-lg hover:bg-surface-100 dark:hover:bg-surface-700 text-red-500"
+                              >
                                 <Trash2 size={16} />
                                 <span>Delete Task</span>
                               </button>
@@ -475,7 +492,10 @@ function MainFeature({ tasks, projects, getProjectById, onTaskStatusChange, onAd
                             <Edit size={16} />
                             <span>Edit Task</span>
                           </button>
-                          <button className="w-full flex items-center gap-2 p-2 text-left rounded-lg hover:bg-surface-100 dark:hover:bg-surface-700 text-red-500">
+                          <button 
+                            onClick={() => handleDeleteTask(task.id)}
+                            className="w-full flex items-center gap-2 p-2 text-left rounded-lg hover:bg-surface-100 dark:hover:bg-surface-700 text-red-500"
+                          >
                             <Trash2 size={16} />
                             <span>Delete Task</span>
                           </button>

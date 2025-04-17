@@ -4,49 +4,27 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        primary: {
-          DEFAULT: '#6366f1', // Indigo
-          light: '#a5b4fc',
-          dark: '#4338ca'
-        },
-        secondary: {
-          DEFAULT: '#ec4899', // Pink
-          light: '#f9a8d4',
-          dark: '#be185d'
-        },
-        accent: '#06b6d4', // Cyan
+        primary: 'rgb(var(--color-primary) / <alpha-value>)',
+        secondary: 'rgb(var(--color-secondary) / <alpha-value>)',
         surface: {
-          50: '#f8fafc',   // Lightest
-          100: '#f1f5f9',
-          200: '#e2e8f0', 
-          300: '#cbd5e1',
-          400: '#94a3b8',  
-          500: '#64748b',  
-          600: '#475569',  
-          700: '#334155',  
-          800: '#1e293b',  
-          900: '#0f172a'   // Darkest
-        }      
+          50: 'rgb(var(--color-surface-50) / <alpha-value>)',
+          100: 'rgb(var(--color-surface-100) / <alpha-value>)',
+          200: 'rgb(var(--color-surface-200) / <alpha-value>)',
+          300: 'rgb(var(--color-surface-300) / <alpha-value>)',
+          400: 'rgb(var(--color-surface-400) / <alpha-value>)',
+          500: 'rgb(var(--color-surface-500) / <alpha-value>)',
+          600: 'rgb(var(--color-surface-600) / <alpha-value>)',
+          700: 'rgb(var(--color-surface-700) / <alpha-value>)',
+          800: 'rgb(var(--color-surface-800) / <alpha-value>)',
+          900: 'rgb(var(--color-surface-900) / <alpha-value>)',
+          950: 'rgb(var(--color-surface-950) / <alpha-value>)',
+        },
       },
-      fontFamily: {
-        sans: ['Inter', 'ui-sans-serif', 'system-ui'],
-        heading: ['Inter', 'ui-sans-serif', 'system-ui']
-      },
-      boxShadow: {
-        'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
-        'card': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)',
-        'neu-light': '5px 5px 15px #d1d9e6, -5px -5px 15px #ffffff',
-        'neu-dark': '5px 5px 15px rgba(0, 0, 0, 0.3), -5px -5px 15px rgba(255, 255, 255, 0.05)'
-      },
-      borderRadius: {
-        'xl': '0.75rem',
-        '2xl': '1rem'
-      }    
-    }  
+    },
   },
   plugins: [],
-  darkMode: 'class',
 }
