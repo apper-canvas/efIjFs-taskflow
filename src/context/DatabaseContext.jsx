@@ -1,6 +1,7 @@
 import { createContext, useEffect, useState } from 'react';
 import TasksService from '../db/TasksService';
 import ProjectsService from '../db/ProjectsService';
+import TagsService from '../db/TagsService';
 
 // Create context
 export const DatabaseContext = createContext(null);
@@ -16,14 +17,16 @@ export function DatabaseProvider({ children }) {
       try {
         setIsLoading(true);
         
-        // Initialize tasks and projects if needed
+        // Initialize tasks, projects, and tags if needed
         const tasksInitialized = await TasksService.initializeIfEmpty();
         const projectsInitialized = await ProjectsService.initializeIfEmpty();
+        const tagsInitialized = await TagsService.initializeIfEmpty();
         
         setIsInitialized(true);
         console.log('Database initialized', { 
           tasksInitialized, 
-          projectsInitialized 
+          projectsInitialized,
+          tagsInitialized
         });
       } catch (err) {
         console.error('Failed to initialize database', err);
@@ -43,6 +46,7 @@ export function DatabaseProvider({ children }) {
     error,
     tasks: TasksService,
     projects: ProjectsService,
+    tags: TagsService,
   };
 
   return (

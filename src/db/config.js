@@ -4,12 +4,13 @@
  */
 
 const DB_NAME = 'taskflow_db';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Incremented for schema changes
 
 // Store names
 export const STORES = {
   TASKS: 'tasks',
-  PROJECTS: 'projects'
+  PROJECTS: 'projects',
+  TAGS: 'tags'
 };
 
 // Open database connection
@@ -27,12 +28,43 @@ export const openDatabase = () => {
         tasksStore.createIndex('status', 'status', { unique: false });
         tasksStore.createIndex('projectId', 'projectId', { unique: false });
         tasksStore.createIndex('dueDate', 'dueDate', { unique: false });
+        tasksStore.createIndex('tags', 'tags', { unique: false, multiEntry: true });
       }
       
       // Create projects store with id as key path
       if (!db.objectStoreNames.contains(STORES.PROJECTS)) {
         const projectsStore = db.createObjectStore(STORES.PROJECTS, { keyPath: 'id' });
         projectsStore.createIndex('name', 'name', { unique: false });
+      }
+
+      // Create tags store with id as key path
+      if (!db.objectStoreNames.contains(STORES.TAGS)) {
+        const tagsStore = db.createObjectStore(STORES.TAGS, { keyPath: 'id' });
+        tagsStore.createIndex('name', 'name', { unique: true });
+      }
+
+      // If upgrading from v1 to v2, add tags to existing tasks
+      if (event.oldVersion === 1 && event.newVersion === 2) {
+        const transaction = event.target.transaction;
+        
+        // Add tags index to tasks if it doesn't exist
+        const tasksStore = transaction.objectStore(STORES.TASKS);
+        if (!tasksStore.indexNames.contains('tags')) {
+          tasksStore.createIndex('tags', 'tags', { unique: false, multiEntry: true });
+        }
+        
+        // Update existing tasks to include empty tags array
+        tasksStore.openCursor().onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) {
+            const task = cursor.value;
+            if (!task.tags) {
+              task.tags = [];
+              cursor.update(task);
+            }
+            cursor.continue();
+          }
+        };
       }
     };
     
@@ -65,6 +97,7 @@ export const initialTasks = [
     priority: "high",
     status: "todo",
     projectId: "project-1",
+    tags: ["tag-1", "tag-3"]
   },
   {
     id: "task-2",
@@ -74,6 +107,7 @@ export const initialTasks = [
     priority: "medium",
     status: "inProgress",
     projectId: "project-2",
+    tags: ["tag-2"]
   },
   {
     id: "task-3",
@@ -83,6 +117,7 @@ export const initialTasks = [
     priority: "low",
     status: "todo",
     projectId: "project-1",
+    tags: ["tag-3"]
   },
   {
     id: "task-4",
@@ -92,6 +127,7 @@ export const initialTasks = [
     priority: "high",
     status: "completed",
     projectId: "project-3",
+    tags: ["tag-4"]
   }
 ];
 
@@ -99,4 +135,11 @@ export const initialProjects = [
   { id: "project-1", name: "Marketing Campaign", color: "#6366f1" },
   { id: "project-2", name: "Website Redesign", color: "#ec4899" },
   { id: "project-3", name: "Client Onboarding", color: "#06b6d4" }
+];
+
+export const initialTags = [
+  { id: "tag-1", name: "Urgent", color: "#ef4444" },
+  { id: "tag-2", name: "Research", color: "#3b82f6" }, 
+  { id: "tag-3", name: "Meeting", color: "#10b981" },
+  { id: "tag-4", name: "Client", color: "#f59e0b" }
 ];

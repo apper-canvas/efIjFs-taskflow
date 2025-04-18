@@ -64,6 +64,11 @@ class TasksService {
         task.id = generateId('task');
       }
       
+      // Ensure task has tags array
+      if (!task.tags) {
+        task.tags = [];
+      }
+      
       const request = store.add(task);
       
       request.onsuccess = () => resolve(task);
@@ -79,6 +84,11 @@ class TasksService {
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(STORES.TASKS, 'readwrite');
       const store = transaction.objectStore(STORES.TASKS);
+      
+      // Ensure task has tags array
+      if (!task.tags) {
+        task.tags = [];
+      }
       
       const request = store.put(task);
       
@@ -114,6 +124,51 @@ class TasksService {
       
       transaction.oncomplete = () => db.close();
     });
+  }
+  
+  // Get tasks by tag ID
+  async getTasksByTag(tagId) {
+    const allTasks = await this.getAllTasks();
+    return allTasks.filter(task => task.tags && task.tags.includes(tagId));
+  }
+  
+  // Add tag to task
+  async addTagToTask(taskId, tagId) {
+    const task = await this.getTaskById(taskId);
+    if (!task) {
+      throw new Error(`Task with ID ${taskId} not found`);
+    }
+    
+    if (!task.tags) {
+      task.tags = [];
+    }
+    
+    if (!task.tags.includes(tagId)) {
+      task.tags.push(tagId);
+      return this.updateTask(task);
+    }
+    
+    return task; // Tag already exists, no change needed
+  }
+  
+  // Remove tag from task
+  async removeTagFromTask(taskId, tagId) {
+    const task = await this.getTaskById(taskId);
+    if (!task) {
+      throw new Error(`Task with ID ${taskId} not found`);
+    }
+    
+    if (!task.tags) {
+      return task; // No tags to remove
+    }
+    
+    const tagIndex = task.tags.indexOf(tagId);
+    if (tagIndex !== -1) {
+      task.tags.splice(tagIndex, 1);
+      return this.updateTask(task);
+    }
+    
+    return task; // Tag not found on task, no change needed
   }
   
   // Initialize with data if empty
