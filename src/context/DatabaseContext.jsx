@@ -1,7 +1,7 @@
 import { createContext, useEffect, useState } from 'react';
-import TasksService from '../db/TasksService';
-import ProjectsService from '../db/ProjectsService';
-import TagsService from '../db/TagsService';
+import TasksService from '../services/TasksService';
+import ProjectsService from '../services/ProjectsService';
+import TagsService from '../services/TagsService';
 
 // Create context
 export const DatabaseContext = createContext(null);

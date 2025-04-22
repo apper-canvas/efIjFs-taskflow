@@ -1,92 +1,63 @@
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { 
-  CheckCircle2, 
-  Clock, 
-  ListTodo, 
-  Plus, 
-  Calendar, 
-  LayoutGrid, 
-  List
-} from "lucide-react";
-import MainFeature from "../components/MainFeature";
-import { useDatabase } from "../hooks/useDatabase";
+import { useState, useEffect, useContext } from 'react';
+import { motion } from 'framer-motion';
+import { DatabaseContext } from '../context/DatabaseContext';
 
 function Home() {
-  const { tasks: tasksService, projects: projectsService, isLoading } = useDatabase();
-  
-  const [tasks, setTasks] = useState([]);
-  const [projects, setProjects] = useState([]);
-  const [viewMode, setViewMode] = useState("list"); // list, grid, calendar
-  const [filter, setFilter] = useState("all"); // all, todo, inProgress, completed
-  
-  // Load tasks and projects from database
+  const { tasks, projects, tags, isLoading } = useContext(DatabaseContext);
+  const [tasksList, setTasksList] = useState([]);
+  const [projectsList, setProjectsList] = useState([]);
+  const [tagsList, setTagsList] = useState([]);
+  const [isDataLoading, setIsDataLoading] = useState(true);
+
+  // Load data when component mounts
   useEffect(() => {
     const loadData = async () => {
       try {
-        const projectsData = await projectsService.getAllProjects();
-        setProjects(projectsData);
+        setIsDataLoading(true);
         
-        const tasksData = await tasksService.getAllTasks();
-        setTasks(tasksData);
+        // Fetch tasks, projects, and tags
+        const tasksData = await tasks.getAllTasks();
+        const projectsData = await projects.getAllProjects();
+        const tagsData = await tags.getAllTags();
+        
+        setTasksList(tasksData);
+        setProjectsList(projectsData);
+        setTagsList(tagsData);
       } catch (error) {
-        console.error("Error loading data:", error);
+        console.error('Error loading data:', error);
+      } finally {
+        setIsDataLoading(false);
       }
     };
     
-    loadData();
-  }, [tasksService, projectsService]);
-  
-  // Filter tasks based on selected filter
-  const filteredTasks = tasks.filter(task => {
-    if (filter === "all") return true;
-    if (filter === "todo") return task.status === "todo";
-    if (filter === "inProgress") return task.status === "inProgress";
-    if (filter === "completed") return task.status === "completed";
-    return true;
-  });
-  
-  const getProjectById = (id) => {
-    const project = projects.find(project => project.id === id);
-    return project || { name: "No Project", color: "#94a3b8" };
+    if (!isLoading) {
+      loadData();
+    }
+  }, [tasks, projects, tags, isLoading]);
+
+  // Find project name by ID
+  const getProjectName = (projectId) => {
+    const project = projectsList.find(p => p.id === projectId);
+    return project ? project.Name : 'No Project';
   };
   
-  const handleTaskStatusChange = async (taskId, newStatus) => {
-    try {
-      const updatedTask = await tasksService.updateTaskStatus(taskId, newStatus);
-      
-      // Update local state
-      setTasks(prevTasks => 
-        prevTasks.map(task => 
-          task.id === taskId ? { ...task, status: newStatus } : task
-        )
-      );
-    } catch (error) {
-      console.error("Error updating task status:", error);
-    }
-  };
-  
-  const handleAddTask = async (newTask) => {
-    try {
-      const addedTask = await tasksService.addTask({
-        ...newTask,
-        id: `task-${Date.now()}`,
-      });
-      
-      // Update local state
-      setTasks(prevTasks => [...prevTasks, addedTask]);
-    } catch (error) {
-      console.error("Error adding task:", error);
-    }
+  // Find tag names by IDs
+  const getTaskTags = (taskTagIds) => {
+    if (!taskTagIds || !taskTagIds.length) return [];
+    
+    return taskTagIds
+      .map(tagId => {
+        const tag = tagsList.find(t => t.id === tagId);
+        return tag ? { id: tag.id, name: tag.Name, color: tag.color } : null;
+      })
+      .filter(Boolean);
   };
 
-  if (isLoading) {
+  // Show loading state
+  if (isLoading || isDataLoading) {
     return (
-      <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-lg">Loading your tasks...</p>
-        </div>
+      <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -98,141 +69,70 @@ function Home() {
       exit={{ opacity: 0 }}
       className="container mx-auto px-4 py-8"
     >
-      <div className="flex flex-col md:flex-row gap-6">
-        {/* Sidebar */}
-        <div className="w-full md:w-64 space-y-6">
-          <div className="card p-4">
-            <h2 className="text-lg font-semibold mb-3">Filters</h2>
-            <nav className="space-y-1">
-              <button 
-                onClick={() => setFilter("all")}
-                className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors ${
-                  filter === "all" 
-                    ? "bg-primary/10 text-primary" 
-                    : "hover:bg-surface-100 dark:hover:bg-surface-700"
-                }`}
-              >
-                <ListTodo size={18} />
-                <span>All Tasks</span>
-              </button>
-              <button 
-                onClick={() => setFilter("todo")}
-                className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors ${
-                  filter === "todo" 
-                    ? "bg-primary/10 text-primary" 
-                    : "hover:bg-surface-100 dark:hover:bg-surface-700"
-                }`}
-              >
-                <Clock size={18} />
-                <span>To Do</span>
-              </button>
-              <button 
-                onClick={() => setFilter("inProgress")}
-                className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors ${
-                  filter === "inProgress" 
-                    ? "bg-primary/10 text-primary" 
-                    : "hover:bg-surface-100 dark:hover:bg-surface-700"
-                }`}
-              >
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                >
-                  <Clock size={18} />
-                </motion.div>
-                <span>In Progress</span>
-              </button>
-              <button 
-                onClick={() => setFilter("completed")}
-                className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors ${
-                  filter === "completed" 
-                    ? "bg-primary/10 text-primary" 
-                    : "hover:bg-surface-100 dark:hover:bg-surface-700"
-                }`}
-              >
-                <CheckCircle2 size={18} />
-                <span>Completed</span>
-              </button>
-            </nav>
-          </div>
-          
-          <div className="card p-4">
-            <h2 className="text-lg font-semibold mb-3">Projects</h2>
-            <div className="space-y-1">
-              {projects.map(project => (
-                <div 
-                  key={project.id}
-                  className="flex items-center gap-2 p-2 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors"
-                >
-                  <div 
-                    className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: project.color }}
-                  />
-                  <span>{project.name}</span>
+      <h2 className="text-2xl font-bold mb-6 text-surface-900 dark:text-white">Your Tasks</h2>
+      
+      {tasksList.length === 0 ? (
+        <div className="bg-white dark:bg-surface-800 rounded-lg shadow p-6 text-center">
+          <p className="text-surface-600 dark:text-surface-400">No tasks found. Create your first task to get started.</p>
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {tasksList.map(task => (
+            <motion.div
+              key={task.id}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              whileHover={{ scale: 1.02 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white dark:bg-surface-800 rounded-lg shadow overflow-hidden"
+            >
+              <div className={`h-2 ${task.priority === 'high' ? 'bg-red-500' : task.priority === 'medium' ? 'bg-amber-500' : 'bg-green-500'}`}></div>
+              <div className="p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="font-bold text-lg text-surface-900 dark:text-white">{task.title}</h3>
+                  <span className={`text-xs px-2 py-1 rounded-full ${
+                    task.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100' :
+                    task.status === 'inProgress' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100' :
+                    'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100'
+                  }`}>
+                    {task.status === 'inProgress' ? 'In Progress' : 
+                     task.status === 'completed' ? 'Completed' : 'To Do'}
+                  </span>
                 </div>
-              ))}
-              <button className="flex items-center gap-2 p-2 text-surface-500 hover:text-primary transition-colors w-full">
-                <Plus size={16} />
-                <span>Add Project</span>
-              </button>
-            </div>
-          </div>
-        </div>
-        
-        {/* Main Content */}
-        <div className="flex-1">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold">My Tasks</h1>
-            
-            <div className="flex items-center gap-2">
-              <div className="bg-surface-100 dark:bg-surface-800 rounded-lg p-1 flex">
-                <button 
-                  onClick={() => setViewMode("list")}
-                  className={`p-1.5 rounded-md ${
-                    viewMode === "list" 
-                      ? "bg-white dark:bg-surface-700 shadow-sm" 
-                      : "text-surface-500"
-                  }`}
-                  aria-label="List view"
-                >
-                  <List size={18} />
-                </button>
-                <button 
-                  onClick={() => setViewMode("grid")}
-                  className={`p-1.5 rounded-md ${
-                    viewMode === "grid" 
-                      ? "bg-white dark:bg-surface-700 shadow-sm" 
-                      : "text-surface-500"
-                  }`}
-                  aria-label="Grid view"
-                >
-                  <LayoutGrid size={18} />
-                </button>
-                <button 
-                  onClick={() => setViewMode("calendar")}
-                  className={`p-1.5 rounded-md ${
-                    viewMode === "calendar" 
-                      ? "bg-white dark:bg-surface-700 shadow-sm" 
-                      : "text-surface-500"
-                  }`}
-                  aria-label="Calendar view"
-                >
-                  <Calendar size={18} />
-                </button>
+                
+                <p className="text-surface-600 dark:text-surface-400 mb-4 line-clamp-2">
+                  {task.description || 'No description provided'}
+                </p>
+                
+                <div className="flex items-center text-sm text-surface-500 dark:text-surface-400 mb-3">
+                  <span className="inline-block w-3 h-3 rounded-full mr-2" 
+                        style={{ backgroundColor: projectsList.find(p => p.id === task.projectId)?.color || '#6366f1' }}></span>
+                  {getProjectName(task.projectId)}
+                </div>
+                
+                {/* Task tags */}
+                {task.tags && task.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {getTaskTags(task.tags).map(tag => (
+                      <span 
+                        key={tag.id}
+                        className="text-xs px-2 py-1 rounded-full"
+                        style={{ 
+                          backgroundColor: `${tag.color}20`, // Add transparency
+                          color: tag.color,
+                          border: `1px solid ${tag.color}`
+                        }}
+                      >
+                        {tag.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-          </div>
-          
-          <MainFeature 
-            tasks={filteredTasks} 
-            projects={projects}
-            getProjectById={getProjectById}
-            onTaskStatusChange={handleTaskStatusChange}
-            onAddTask={handleAddTask}
-            viewMode={viewMode}
-          />
+            </motion.div>
+          ))}
         </div>
-      </div>
+      )}
     </motion.div>
   );
 }
